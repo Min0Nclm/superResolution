@@ -48,7 +48,7 @@ class LFPB(nn.Module):
         self.dilation_group = DilationConvGroup(num_feat)
         self.bsconv_group = BSConvGroup(num_feat)
         self.esa = ESA(num_feat)
-        self.conv_final = nn.Conv2d(num_feat, num_feat, kernel_size=3, padding=1)
+        self.bconv_final = BSConv(num_feat, num_feat, kernel_size=3, padding=1)
 
     def forward(self, x):
         identity = x
@@ -59,9 +59,10 @@ class LFPB(nn.Module):
 
         attended_feat = self.esa(fused_feat)
 
-        out = self.conv_final(attended_feat)
+        res = attended_feat + identity
+        out = self.bconv_final(res)
 
-        return identity + out
+        return out
 
 class LFPN(nn.Module):
 
@@ -73,7 +74,12 @@ class LFPN(nn.Module):
 
         self.body = nn.ModuleList([LFPB(num_feat) for _ in range(num_blocks)])
 
-        self.fusion = nn.Conv2d(num_feat * num_blocks, num_feat, kernel_size=1, padding=0)
+        self.fusion = nn.Sequential(
+            nn.Conv2d(num_feat * num_blocks, num_feat, kernel_size=1, padding=0),
+            nn.Sigmoid(),
+            nn.ReLU(inplace=False),
+            nn.Conv2d(num_feat, num_feat, kernel_size=3, padding=1)
+        )
 
         self.tail = nn.Sequential(
             nn.Conv2d(num_feat, 3 * (scale ** 2), kernel_size=3, padding=1),

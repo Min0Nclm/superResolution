@@ -2,6 +2,18 @@
 
 This project implements a deep learning model for single image super-resolution (SISR). It uses a Lightweight Feature Pyramid Network (LFPN) to upscale low-resolution images.
 
+## Architecture
+
+The overall architecture of the model is shown below:
+
+![Architecture](fig/arc.png)
+
+### LFPB Module
+
+The core component of the network is the Lightweight Feature Pyramid Block (LFPB), which is structured as follows:
+
+![LFPB Module](fig/LFPB.png)
+
 ## Directory Structure
 
 The project follows a specific directory structure for data, models, and results.
@@ -81,3 +93,9 @@ The script will:
 ## Results
 
 All training outputs, including the saved model checkpoints (`.pt` files) and log files (`log.txt`), will be stored in a newly created subdirectory within the `results` directory. The subdirectory is named with the timestamp of the training run, for example: `results/2000-01-01_12-00-00/`.
+
+### Performance
+
+The model's performance is compared with other state-of-the-art methods on standard benchmark datasets.
+
+![Performance Comparison](fig/sRtable.png)

@@ -92,9 +92,9 @@ def calculate_psnr(sr, hr, rgb_range=1.0):
 
 if __name__ == '__main__':
     SCALE_FACTOR = 2
-    NUM_EPOCHS = 100
+    MAX_ITERATIONS = 1000000
     BATCH_SIZE = 16
-    LEARNING_RATE = 1e-4
+    LEARNING_RATE = 2e-4
     TRAIN_HR_DIR = "data/Train/HR"
     VALID_HR_DIR = "data/Validation/HR"
     RESULTS_DIR = "results"
@@ -132,21 +132,38 @@ if __name__ == '__main__':
     criterion = nn.L1Loss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=MAX_ITERATIONS, eta_min=1e-7)
+
     best_psnr = 0.0
+    current_iter = 0
+    epoch = 0
     print("\n--- Start ---")
-    for epoch in range(NUM_EPOCHS):
+
+    while current_iter < MAX_ITERATIONS:
         model.train()
         epoch_loss = 0
+        epoch_start_iter = current_iter
+        
         for i, (lr_batch, hr_batch) in enumerate(train_loader):
+            if current_iter >= MAX_ITERATIONS:
+                break
+
             lr_batch, hr_batch = lr_batch.to(device), hr_batch.to(device)
             sr_batch = model(lr_batch)
             loss = criterion(sr_batch, hr_batch)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
+
             epoch_loss += loss.item()
-            print(f"\rEpoch [{epoch+1}/{NUM_EPOCHS}], Step [{i+1}/{len(train_loader)}], Loss: {loss.item():.4f}", end='')
-        print(f"\nEpoch [{epoch+1}/{NUM_EPOCHS}] finish. Average Loss: {epoch_loss / len(train_loader):.4f}")
+            current_iter += 1
+
+            if current_iter % 100 == 0:
+                print(f"\rEpoch [{epoch+1}], Iter [{current_iter}/{MAX_ITERATIONS}], Loss: {loss.item():.4f}, LR: {scheduler.get_last_lr()[0]:.1e}", end='')
+        
+        epoch += 1
+        print(f"\nEpoch [{epoch}] finish. Average Loss: {epoch_loss / len(train_loader):.4f}")
 
         model.eval()
         avg_psnr = 0
@@ -166,4 +183,4 @@ if __name__ == '__main__':
             scripted_model.save(MODEL_SAVE_PATH)
         print("-" * 30)
 
-    print("\n--- End ---")
+    print(f"\n--- End of {MAX_ITERATIONS} iterations ---")
